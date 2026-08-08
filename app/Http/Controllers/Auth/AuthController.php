@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers\Api;
+namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\LoginRequest;
@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
 class AuthController extends Controller
 {
     public function register(RegisterRequest $request)
@@ -105,4 +106,53 @@ class AuthController extends Controller
         'message' => 'Déconnexion réussie.'
     ], 200);
 }
+public function forgotPassword(Request $request)
+{
+    $request->validate([
+        'email' => 'required|email'
+    ]);
+
+    $status = Password::sendResetLink(
+        $request->only('email')
+    );
+
+    return response()->json([
+        'message' => __($status)
+    ]);
+}
+
+public function resetPassword(Request $request)
+{
+    $request->validate([
+        'token' => 'required',
+        'email' => 'required|email',
+        'password' => 'required|string|min:8|confirmed',
+    ]);
+
+    $status = Password::reset(
+        $request->only(
+            'email',
+            'password',
+            'password_confirmation',
+            'token'
+        ),
+        function ($user, $password) {
+            $user->forceFill([
+                'password' => Hash::make($password),
+            ])->save();
+        }
+    );
+
+    return response()->json([
+        'message' => __($status),
+    ]);
+}
+ public function profile(Request $request)
+    {
+        return response()->json([
+            'user' => $request->user()
+        ]);
+    }
+
+
 }

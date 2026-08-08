@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Auth\AuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -11,7 +11,18 @@ use Illuminate\Support\Facades\Route;
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+ //Profil
+Route::middleware('auth:sanctum')->get('/profile', [AuthController::class, 'profile']);
 
+   // Reset Password
+    Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+   //Forgot Password
+Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
+Route::get('/reset-password/{token}', function ($token) {
+    return response()->json([
+        'token' => $token
+    ]);
+})->name('password.reset');
 /*
 |--------------------------------------------------------------------------
 | Routes protégées
@@ -20,12 +31,7 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // Inscription
-    Route::get('/register', [AuthController::class, 'register']);
-    //Connexion
-Route::post('/login', [AuthController::class, 'login'])
-    ->middleware('auth:sanctum');
-
+ 
     // Déconnexion
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth:sanctum');

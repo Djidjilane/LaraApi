@@ -13,11 +13,13 @@ class RolePermissionSeeder extends Seeder
      */
     public function run(): void
     {
-        $admin= Role:: create([
-            'name'=> 'admin'
+        Role::create([
+            'name' => 'admin',
+            'guard_name' => 'web'
         ]);
-         $user= Role:: create([
-            'name'=> 'user'
+         Role::create([
+            'name' => 'user',
+            'guard_name' => 'web'
         ]);
     }
 }
