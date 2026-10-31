@@ -11,6 +11,13 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Support\Facades\DB;
 
+
+ use App\Mail\WelcomeUserMail;
+
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Str;
+
 class UserController extends Controller
 {
     /**
@@ -30,30 +37,43 @@ class UserController extends Controller
     /**
      * Créer un utilisateur.
      */
-    public function store(StoreUserRequest $request): JsonResponse
-    {
-        $this->authorize('create', User::class);
+ 
+public function store(StoreUserRequest $request): JsonResponse
+{
+    $this->authorize('create', User::class);
 
-        $user = DB::transaction(function () use ($request) {
+    $data = $request->validated();
 
-            $user = User::create([
-                'lastname' => $request->lastname,
-                'firstname' => $request->firstname,
-                'telephone' => $request->telephone,
-                'email' => $request->email,
-                'password' => $request->password,
-                'is_active' => $request->boolean('is_active', true),
-            ]);
+    // Génération d'un mot de passe temporaire
+    $temporaryPassword = Str::random(12);
 
-            $user->assignRole($request->role);
+    // Création du compte
+    $user = DB::transaction(function () use ($data, $temporaryPassword) {
 
-            return $user;
-        });
+        $user = User::create([
+            'lastname' => $data['lastname'],
+            'firstname' => $data['firstname'],
+            'telephone' => $data['telephone'] ?? null,
+            'email' => $data['email'],
+            'password' => Hash::make($temporaryPassword),
+            'is_active' => $data['is_active'] ?? true,
+        ]);
 
-        return (new UserResource($user->load('roles')))
-            ->response()
-            ->setStatusCode(201);
-    }
+        $user->assignRole($data['role']);
+
+        return $user;
+    });
+
+    // Envoi de l'email après la création du compte
+    Mail::to($user->email)->send(
+        new WelcomeUserMail($user, $temporaryPassword)
+    );
+
+    return response()->json([
+        'message' => 'Utilisateur créé avec succès. Un email de bienvenue lui a été envoyé.',
+        'data' => new UserResource($user->load('roles')),
+    ], 201);
+}
 
     /**
      * Afficher un utilisateur.
